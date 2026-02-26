@@ -266,6 +266,78 @@ label {
   font-size: 14px;
 }
 /* Recipe Tab */
+/* Recipe sub-tabs */
+.recipe-subtabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.recipe-subtab {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--card);
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.recipe-subtab.active { background: var(--accent); color: #0f1117; }
+.recipe-subtab-content { display: none; }
+.recipe-subtab-content.active { display: block; }
+.count-badge {
+  background: var(--danger);
+  color: white;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+.recipe-subtab.active .count-badge { background: #0f1117; color: var(--accent); }
+/* Saved recipe card */
+.saved-recipe-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.saved-recipe-card:hover { background: var(--card-hover); border-color: var(--accent); }
+.saved-recipe-card .saved-date {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.saved-recipe-card .delete-saved {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: var(--danger-dim);
+  color: var(--danger);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  opacity: 0.7;
+}
+.saved-recipe-card .delete-saved:hover { opacity: 1; }
 /* Recipe preview cards */
 .recipe-card {
   background: var(--card);
@@ -613,19 +685,56 @@ label {
 
 <!-- Tab 3: Recipes -->
 <div id="tab-recipes" class="tab-content">
-  <div class="search-bar" style="margin-bottom:10px;">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-    <input type="text" id="recipe-search" placeholder="Search for a dish (e.g. 糖醋蛋, pasta, curry...)" onkeydown="if(event.key==='Enter')searchRecipe()">
+  <!-- Sub-tabs for Recipes -->
+  <div class="recipe-subtabs">
+    <button class="recipe-subtab active" onclick="switchRecipeSubtab('ai', this)">AI Recipes</button>
+    <button class="recipe-subtab" onclick="switchRecipeSubtab('saved', this)">
+      Saved <span id="saved-count-badge" class="count-badge" style="display:none;">0</span>
+    </button>
   </div>
-  <div style="display:flex;gap:8px;margin-bottom:14px;">
-    <button class="btn btn-primary" style="flex:1;" onclick="suggestRecipes()" id="suggest-btn">Suggest from Pantry</button>
-    <button class="btn btn-secondary" style="flex:1;" onclick="searchRecipe()" id="search-btn">Search</button>
+
+  <!-- AI Recipes sub-tab -->
+  <div id="subtab-ai" class="recipe-subtab-content active">
+    <div class="search-bar" style="margin-bottom:10px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="recipe-search" placeholder="Search for a dish (e.g. 糖醋蛋, pasta, curry...)" onkeydown="if(event.key==='Enter')searchRecipe()">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="suggestRecipes()" id="suggest-btn">Suggest from Pantry</button>
+      <button class="btn btn-secondary" style="flex:1;" onclick="searchRecipe()" id="search-btn">Search</button>
+    </div>
+    <div id="recipe-loading" class="loading-overlay">
+      <div class="spinner"></div>
+      <span>Generating recipes...</span>
+    </div>
+    <div id="recipe-list"></div>
   </div>
-  <div id="recipe-loading" class="loading-overlay">
-    <div class="spinner"></div>
-    <span>Generating recipes...</span>
+
+  <!-- Saved Recipes sub-tab -->
+  <div id="subtab-saved" class="recipe-subtab-content">
+    <div class="scan-buttons" style="margin-bottom:14px;">
+      <button class="scan-btn" onclick="document.getElementById('rednote-camera').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <p>Screenshot Recipe</p>
+      </button>
+      <button class="scan-btn" onclick="document.getElementById('rednote-album').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <p>From Album</p>
+      </button>
+    </div>
+    <input type="file" id="rednote-camera" accept="image/*" capture="environment" style="display:none" onchange="handleRedNotePhoto(this)">
+    <input type="file" id="rednote-album" accept="image/*" style="display:none" onchange="handleRedNotePhoto(this)">
+    <img id="rednote-preview" style="max-width:100%;max-height:150px;border-radius:8px;margin-bottom:10px;display:none;" alt="Screenshot preview">
+    <div id="rednote-loading" class="loading-overlay">
+      <div class="spinner"></div>
+      <span>Extracting recipe from screenshot...</span>
+    </div>
+    <div class="search-bar" style="margin-bottom:10px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="saved-search" placeholder="Search saved recipes..." oninput="renderSavedRecipes()">
+    </div>
+    <div id="saved-recipes-list"></div>
   </div>
-  <div id="recipe-list"></div>
 </div>
 
 <!-- Tab 4: Taste Profile -->
@@ -842,6 +951,15 @@ function switchTab(name, btn) {
   if (btn) btn.classList.add('active');
   if (name === 'pantry') renderPantry();
   if (name === 'taste') renderTasteProfile();
+  if (name === 'recipes') { renderSavedRecipes(); updateSavedBadge(); }
+}
+
+function switchRecipeSubtab(name, btn) {
+  document.querySelectorAll('.recipe-subtab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.recipe-subtab').forEach(b => b.classList.remove('active'));
+  document.getElementById('subtab-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'saved') renderSavedRecipes();
 }
 
 // ===================== TOAST =====================
@@ -1391,6 +1509,138 @@ function renderSavedAlternatives(recipeName) {
     </div>`;
 }
 
+// ===================== SAVED RECIPES (RedNote) =====================
+let savedRecipes = loadData('saved_recipes', []);
+
+function updateSavedBadge() {
+  const badge = document.getElementById('saved-count-badge');
+  if (savedRecipes.length) {
+    badge.textContent = savedRecipes.length;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+async function handleRedNotePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const preview = document.getElementById('rednote-preview');
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+
+    const base64url = e.target.result;
+    document.getElementById('rednote-loading').classList.add('active');
+
+    try {
+      const pantryList = pantry.length ? `\nI have these in my pantry: ${pantry.map(i => i.name).join(', ')}. Mark have:true for ingredients I have.` : '';
+
+      const response = await callAI([{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: base64url, detail: 'high' } },
+          { type: 'text', text: `This is a screenshot of a recipe from a social media app (小红书/RedNote or similar). Extract the complete recipe from this image. The text may be in Chinese, English, or both.${pantryList}
+
+Return ONLY valid JSON, no other text:
+{"name": "菜名 English Name", "cuisine": "Chinese/Japanese/etc", "difficulty": "easy|medium|hard", "time": "20 min",
+  "ingredients": [{"name": "鸡蛋 Egg", "amount": "2-3个", "have": false}],
+  "steps": ["① 步骤\\n详细说明", "② ..."],
+  "tips": ["tip1"],
+  "warnings": ["warning1"],
+  "source": "RedNote"}
+RULES: Every ingredient needs exact "amount". Steps numbered ① ② ③ with details. Include tips and warnings if visible in the image. Write in bilingual Chinese+English.` }
+        ]
+      }]);
+
+      const jsonStr = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const recipe = JSON.parse(jsonStr);
+      recipe.savedDate = new Date().toISOString();
+      recipe.thumbnail = base64url;
+      savedRecipes.unshift(recipe);
+      saveData('saved_recipes', savedRecipes);
+      renderSavedRecipes();
+      updateSavedBadge();
+      showToast('Recipe saved: ' + recipe.name);
+    } catch (err) {
+      showToast('Error extracting recipe: ' + err.message);
+      console.error(err);
+    } finally {
+      document.getElementById('rednote-loading').classList.remove('active');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderSavedRecipes() {
+  const container = document.getElementById('saved-recipes-list');
+  const search = (document.getElementById('saved-search')?.value || '').toLowerCase();
+
+  const filtered = savedRecipes.filter(r =>
+    !search || r.name.toLowerCase().includes(search) ||
+    (r.cuisine || '').toLowerCase().includes(search)
+  );
+
+  if (!filtered.length) {
+    container.innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      <p>${search ? 'No matching recipes' : 'No saved recipes yet. Screenshot a recipe from RedNote to save it here!'}</p>
+    </div>`;
+    return;
+  }
+
+  // Re-check pantry matches for saved recipes
+  const pantryNames = pantry.map(p => p.name.toLowerCase());
+
+  container.innerHTML = filtered.map((r, i) => {
+    const realIdx = savedRecipes.indexOf(r);
+    const ings = r.ingredients || [];
+    // Re-evaluate have based on current pantry
+    ings.forEach(ing => {
+      ing.have = pantryNames.some(p => p.includes(ing.name.toLowerCase()) || ing.name.toLowerCase().includes(p));
+    });
+    const haveCount = ings.filter(ing => ing.have).length;
+    const total = ings.length;
+    const pct = total ? Math.round(haveCount / total * 100) : 0;
+    const dateStr = r.savedDate ? new Date(r.savedDate).toLocaleDateString() : '';
+    const ingHtml = ings.map(ing =>
+      `<span style="color:${ing.have ? 'var(--accent)' : 'var(--muted)'};font-size:12px;">${ing.have ? '✓' : '✗'} ${esc(ing.name)}</span>`
+    ).join('&nbsp;&nbsp;');
+
+    return `
+    <div class="saved-recipe-card" onclick="openSavedRecipeDetail(${realIdx})">
+      <button class="delete-saved" onclick="event.stopPropagation();deleteSavedRecipe(${realIdx})" title="Delete">&times;</button>
+      <div class="recipe-name">${esc(r.name)}</div>
+      <div class="saved-date">${esc(r.source || 'Saved')} &middot; ${dateStr}</div>
+      <div class="recipe-badges" style="margin-top:6px;">
+        <span class="badge badge-cuisine">${esc(r.cuisine || '')}</span>
+        <span class="badge badge-time">${esc(r.time || '')}</span>
+        ${total > 0 ? `<span class="badge badge-match">${pct}% (${haveCount}/${total})</span>` : ''}
+      </div>
+      <div class="recipe-preview-ing" style="margin-top:6px;">${ingHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function deleteSavedRecipe(idx) {
+  if (!confirm('Delete this saved recipe?')) return;
+  savedRecipes.splice(idx, 1);
+  saveData('saved_recipes', savedRecipes);
+  renderSavedRecipes();
+  updateSavedBadge();
+  showToast('Recipe deleted');
+}
+
+function openSavedRecipeDetail(idx) {
+  const r = savedRecipes[idx];
+  if (!r) return;
+  // Reuse the recipe detail view by temporarily adding to currentRecipes
+  currentRecipes = [r];
+  openRecipeDetail(0);
+}
+
 // ===================== RECIPE CHAT =====================
 async function sendChatMessage() {
   const input = document.getElementById('chat-input');
@@ -1587,6 +1837,7 @@ function esc(str) {
   // Initial renders
   renderPantry();
   renderTasteProfile();
+  updateSavedBadge();
 
   // Register service worker
   if ('serviceWorker' in navigator) {
