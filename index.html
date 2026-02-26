@@ -252,6 +252,19 @@ label {
 .pantry-item .pi-name { font-weight: 600; font-size: 14px; }
 .pantry-item .pi-meta { font-size: 11px; color: var(--muted); }
 .pantry-item .pi-actions { display: flex; gap: 4px; }
+.pantry-item .edit-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
 .pantry-item .delete-btn {
   width: 28px;
   height: 28px;
@@ -1150,7 +1163,21 @@ function dislikeExtractedItem(idx) {
   showToast(item.name + ' skipped');
 }
 
+let editingPantryItemId = null;
+
+function editPantryItem(id) {
+  const item = pantry.find(i => String(i.id) === String(id));
+  if (!item) return;
+  editingPantryItemId = id;
+  document.getElementById('edit-item-name').value = item.name;
+  document.getElementById('edit-item-category').value = item.category || 'pantry';
+  document.getElementById('edit-item-qty').value = item.quantity || '1';
+  document.getElementById('edit-item-index').value = '';
+  openModal('edit-item-modal');
+}
+
 function editExtractedItem(idx) {
+  editingPantryItemId = null;
   const item = extractedItems[idx];
   document.getElementById('edit-item-name').value = item.name;
   document.getElementById('edit-item-category').value = item.category;
@@ -1160,13 +1187,31 @@ function editExtractedItem(idx) {
 }
 
 function saveEditedItem() {
-  const idx = parseInt(document.getElementById('edit-item-index').value);
-  extractedItems[idx].name = document.getElementById('edit-item-name').value.trim();
-  extractedItems[idx].category = document.getElementById('edit-item-category').value;
-  extractedItems[idx].quantity = document.getElementById('edit-item-qty').value.trim();
-  closeModal('edit-item-modal');
-  renderExtractedItems();
-  showToast('Item updated');
+  const name = document.getElementById('edit-item-name').value.trim();
+  const category = document.getElementById('edit-item-category').value;
+  const quantity = document.getElementById('edit-item-qty').value.trim();
+
+  if (editingPantryItemId !== null) {
+    const item = pantry.find(i => String(i.id) === String(editingPantryItemId));
+    if (item) {
+      item.name = name;
+      item.category = category;
+      item.quantity = quantity;
+      persist();
+    }
+    editingPantryItemId = null;
+    closeModal('edit-item-modal');
+    renderPantry();
+    showToast('Item updated');
+  } else {
+    const idx = parseInt(document.getElementById('edit-item-index').value);
+    extractedItems[idx].name = name;
+    extractedItems[idx].category = category;
+    extractedItems[idx].quantity = quantity;
+    closeModal('edit-item-modal');
+    renderExtractedItems();
+    showToast('Item updated');
+  }
 }
 
 function addAllRemaining() {
@@ -1237,6 +1282,7 @@ function renderPantry() {
             <div class="pi-meta">Qty: ${esc(item.quantity || '1')} &middot; Added ${dateStr}</div>
           </div>
           <div class="pi-actions">
+            <button class="edit-btn" onclick="editPantryItem('${item.id}')" title="Edit">&#9998;</button>
             <button class="delete-btn" onclick="deleteItem('${item.id}')" title="Remove">&times;</button>
           </div>
         </div>`;
@@ -1309,7 +1355,7 @@ async function suggestRecipes() {
   document.getElementById('recipe-loading').classList.add('active');
   document.getElementById('recipe-list').innerHTML = '';
 
-  const ingredientList = pantry.map(i => i.name).join(', ');
+  const ingredientList = pantry.map(i => `${i.name} [${i.category}]`).join(', ');
   const liked = preferences.likedIngredients.join(', ') || 'none';
   const disliked = preferences.dislikedIngredients.join(', ') || 'none';
   const cuisines = preferences.likedCuisines.join(', ') || 'any';
@@ -1356,7 +1402,7 @@ async function searchRecipe() {
   document.getElementById('recipe-loading').classList.add('active');
   document.getElementById('recipe-list').innerHTML = '';
 
-  const pantryList = pantry.length ? `I have: ${pantry.map(i => i.name).join(', ')}. Mark have:true/false.` : '';
+  const pantryList = pantry.length ? `I have: ${pantry.map(i => `${i.name} [${i.category}]`).join(', ')}. Mark have:true/false.` : '';
 
   try {
     const response = await callAI([{
