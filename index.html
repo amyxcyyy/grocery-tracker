@@ -292,19 +292,40 @@ label {
 .badge-difficulty { background: #2d4e3a; color: #a8f0b8; }
 .badge-time { background: #4e3a2d; color: #f0c8a8; }
 .ingredient-list { margin-bottom: 10px; }
-.ingredient-list h4 { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.ingredient-list h4 { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
 .ingredient {
   font-size: 13px;
-  padding: 2px 0;
+  padding: 4px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #1a1d2e;
 }
+.ingredient:last-child { border-bottom: none; }
 .ingredient.have { color: var(--success); }
 .ingredient.missing { color: var(--muted); }
-.ingredient.have::before { content: "\2713 "; }
-.ingredient.missing::before { content: "\2717 "; }
-.recipe-steps { margin-top: 10px; }
-.recipe-steps h4 { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-.recipe-steps ol { padding-left: 18px; }
-.recipe-steps li { font-size: 13px; margin-bottom: 4px; line-height: 1.4; }
+.ingredient.have::before { content: "\2713 "; margin-right: 6px; flex-shrink: 0; }
+.ingredient.missing::before { content: "\2717 "; margin-right: 6px; flex-shrink: 0; }
+.ingredient span:first-child { flex: 1; }
+.ing-amount {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--accent);
+  text-align: right;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+.recipe-steps { margin-top: 12px; }
+.recipe-steps h4 { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.steps-list { display: flex; flex-direction: column; gap: 8px; }
+.step-item {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: #0f1117;
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+}
 .recipe-actions { display: flex; gap: 8px; margin-top: 12px; }
 /* Taste Profile */
 .pref-section { margin-bottom: 16px; }
@@ -460,10 +481,17 @@ label {
 
 <!-- Tab 3: Recipes -->
 <div id="tab-recipes" class="tab-content">
-  <button class="btn btn-primary btn-full" onclick="suggestRecipes()" id="suggest-btn" style="margin-bottom:14px;">Suggest Recipes</button>
+  <div class="search-bar" style="margin-bottom:10px;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input type="text" id="recipe-search" placeholder="Search for a dish (e.g. 糖醋蛋, pasta, curry...)" onkeydown="if(event.key==='Enter')searchRecipe()">
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <button class="btn btn-primary" style="flex:1;" onclick="suggestRecipes()" id="suggest-btn">Suggest from Pantry</button>
+    <button class="btn btn-secondary" style="flex:1;" onclick="searchRecipe()" id="search-btn">Search</button>
+  </div>
   <div id="recipe-loading" class="loading-overlay">
     <div class="spinner"></div>
-    <span>Generating recipe suggestions...</span>
+    <span>Generating recipes...</span>
   </div>
   <div id="recipe-list"></div>
 </div>
@@ -976,8 +1004,44 @@ My food preferences:
 - Recipe styles I enjoy: ${cuisines}
 
 Suggest 3-5 recipes I can make. Favor ingredients I like, avoid ingredients I dislike, and match my preferred recipe styles where possible. For each recipe return ONLY valid JSON, no other text:
-[{"name": "...", "cuisine": "...", "difficulty": "easy|medium|hard", "time": "30 min", "ingredients": [{"name": "...", "have": true}], "steps": ["step 1", "step 2"]}]
-Prefer recipes where I have most/all ingredients. Mark ingredients I have as have:true and ones I'd need to buy as have:false.`
+[{"name": "Recipe Name (中文名)", "cuisine": "...", "difficulty": "easy|medium|hard", "time": "30 min", "ingredients": [{"name": "鸡蛋 Egg", "amount": "2-3个", "have": true}], "steps": ["① 步骤名\\nDetailed instruction here", "② 步骤名\\nDetailed instruction here"]}]
+IMPORTANT: Every ingredient MUST include an "amount" field with specific measurements (e.g. "1 tbsp", "200g", "2个", "少许", "适量"). For seasonings be very specific (e.g. "醋 1 tbsp", "糖 1 tbsp", "生抽 1 tbsp"). Steps should be numbered with ① ② ③ and include sub-steps with line breaks. Prefer recipes where I have most/all ingredients. Mark ingredients I have as have:true and ones I'd need to buy as have:false.`
+    }]);
+
+    const jsonStr = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const recipes = JSON.parse(jsonStr);
+    renderRecipes(recipes);
+  } catch (err) {
+    showToast('Error: ' + err.message);
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('recipe-loading').classList.remove('active');
+  }
+}
+
+async function searchRecipe() {
+  const query = document.getElementById('recipe-search').value.trim();
+  if (!query) {
+    showToast('Type a dish name to search');
+    return;
+  }
+
+  const btn = document.getElementById('search-btn');
+  btn.disabled = true;
+  document.getElementById('recipe-loading').classList.add('active');
+  document.getElementById('recipe-list').innerHTML = '';
+
+  const pantryList = pantry.length ? pantry.map(i => i.name).join(', ') : 'not specified';
+
+  try {
+    const response = await callAI([{
+      role: 'user',
+      content: `Give me 1-3 recipes for: "${query}".
+${pantry.length ? `I have these ingredients at home: ${pantryList}.` : ''}
+Return ONLY valid JSON, no other text:
+[{"name": "Recipe Name (中文名)", "cuisine": "...", "difficulty": "easy|medium|hard", "time": "30 min", "ingredients": [{"name": "鸡蛋 Egg", "amount": "2-3个", "have": ${pantry.length ? 'true/false based on my pantry' : 'false'}}], "steps": ["① 步骤名\\nDetailed instruction here", "② 步骤名\\nDetailed instruction here"]}]
+IMPORTANT: Every ingredient MUST include an "amount" field with specific measurements (e.g. "1 tbsp", "200g", "2个", "少许", "适量"). For seasonings be very specific (e.g. "醋 1 tbsp", "糖 1 tbsp", "生抽 1 tbsp"). Steps should be numbered with ① ② ③ and include sub-steps with line breaks.${pantry.length ? ' Mark ingredients I have as have:true.' : ''}`
     }]);
 
     const jsonStr = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -1012,14 +1076,19 @@ function renderRecipes(recipes) {
         <span class="badge badge-time">${esc(r.time)}</span>
       </div>
       <div class="ingredient-list">
-        <h4>Ingredients</h4>
+        <h4>Materials</h4>
         ${(r.ingredients || []).map(ing =>
-          `<div class="ingredient ${ing.have ? 'have' : 'missing'}">${esc(ing.name)}</div>`
+          `<div class="ingredient ${ing.have ? 'have' : 'missing'}">
+            <span>${esc(ing.name)}</span>
+            ${ing.amount ? `<span class="ing-amount">${esc(ing.amount)}</span>` : ''}
+          </div>`
         ).join('')}
       </div>
       <div class="recipe-steps">
         <h4>Steps</h4>
-        <ol>${(r.steps || []).map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+        <div class="steps-list">${(r.steps || []).map(s =>
+          `<div class="step-item">${esc(s).replace(/\\n/g, '<br>').replace(/\n/g, '<br>')}</div>`
+        ).join('')}</div>
       </div>
       <div class="recipe-actions">
         <button class="icon-btn like" onclick="likeRecipe(${i}, '${esc(r.name)}', '${esc(r.cuisine)}')" title="Like this recipe">
