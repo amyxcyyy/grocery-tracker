@@ -1164,17 +1164,19 @@ async function suggestRecipes() {
       role: 'user',
       content: `I have these ingredients: ${ingredientList}.
 Preferences: like ${liked}, dislike ${disliked}, enjoy ${cuisines} cuisine.
-Suggest 3-5 recipes using my ingredients. Prefer recipes where I have most ingredients. Mark have:true/false.
+Suggest exactly 5 recipes using my ingredients. Prefer recipes where I have most ingredients. Mark have:true/false.
 ${RECIPE_PROMPT_SUFFIX}`
     }]);
 
     const jsonStr = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const recipes = JSON.parse(jsonStr);
-    // Sort by number of ingredients user has (most first)
+    // Sort by percentage of ingredients user has (100% first)
     recipes.sort((a, b) => {
-      const aHave = (a.ingredients || []).filter(i => i.have).length;
-      const bHave = (b.ingredients || []).filter(i => i.have).length;
-      return bHave - aHave;
+      const aIngs = a.ingredients || [];
+      const bIngs = b.ingredients || [];
+      const aPct = aIngs.length ? aIngs.filter(i => i.have).length / aIngs.length : 0;
+      const bPct = bIngs.length ? bIngs.filter(i => i.have).length / bIngs.length : 0;
+      return bPct - aPct;
     });
     currentRecipes = recipes;
     renderRecipeList(recipes);
@@ -1231,9 +1233,15 @@ function renderRecipeList(recipes) {
   }
 
   container.innerHTML = recipes.map((r, i) => {
-    const haveCount = (r.ingredients || []).filter(ing => ing.have).length;
-    const total = (r.ingredients || []).length;
-    const ingPreview = (r.ingredients || []).map(ing => ing.name).join(', ');
+    const ings = r.ingredients || [];
+    const haveCount = ings.filter(ing => ing.have).length;
+    const total = ings.length;
+    const pct = total ? Math.round(haveCount / total * 100) : 0;
+    const ingHtml = ings.map(ing =>
+      `<span style="color:${ing.have ? 'var(--accent)' : 'var(--muted)'};font-size:12px;">${ing.have ? '✓' : '✗'} ${esc(ing.name)}</span>`
+    ).join('&nbsp;&nbsp;');
+    const savedAlts = getSavedAlternatives(r.name);
+    const altBadge = savedAlts.length ? `<span class="badge" style="background:#4e3a6e;color:#d8a8f0;">${savedAlts.length} alt${savedAlts.length>1?'s':''}</span>` : '';
     return `
     <div class="recipe-card" onclick="openRecipeDetail(${i})">
       <div class="recipe-header">
@@ -1243,9 +1251,10 @@ function renderRecipeList(recipes) {
         <span class="badge badge-cuisine">${esc(r.cuisine)}</span>
         <span class="badge badge-difficulty">${esc(r.difficulty)}</span>
         <span class="badge badge-time">${esc(r.time)}</span>
-        ${total > 0 ? `<span class="badge badge-match">${haveCount}/${total} ingredients</span>` : ''}
+        ${total > 0 ? `<span class="badge badge-match">${pct}% (${haveCount}/${total})</span>` : ''}
+        ${altBadge}
       </div>
-      <div class="recipe-preview-ing">${esc(ingPreview)}</div>
+      <div class="recipe-preview-ing">${ingHtml}</div>
       <div class="recipe-tap-hint">Tap to view full recipe &rarr;</div>
     </div>`;
   }).join('');
@@ -1307,7 +1316,12 @@ function openRecipeDetail(idx) {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15V19a3 3 0 006 0v-4h3a2 2 0 002-2V6a2 2 0 00-2-2H7.72a2 2 0 00-1.94 1.51L4 13a2 2 0 002 2h4z"/></svg>
       </button>
     </div>
+
+    <div id="saved-alternatives"></div>
   `;
+
+  // Show saved alternatives
+  renderSavedAlternatives(r.name);
 
   // Reset chat
   document.getElementById('chat-messages').innerHTML = '';
@@ -1321,7 +1335,63 @@ function closeRecipeDetail() {
   document.getElementById('recipe-detail').classList.remove('active');
 }
 
-// Chat about the recipe
+// ===================== ALTERNATIVES STORAGE =====================
+let savedAlternatives = loadData('recipe_alternatives', {});
+
+function getSavedAlternatives(recipeName) {
+  return savedAlternatives[recipeName] || [];
+}
+
+function saveAlternative(recipeName, altRecipe) {
+  if (!savedAlternatives[recipeName]) savedAlternatives[recipeName] = [];
+  // Avoid duplicates by name
+  if (!savedAlternatives[recipeName].some(a => a.name === altRecipe.name)) {
+    savedAlternatives[recipeName].push(altRecipe);
+    saveData('recipe_alternatives', savedAlternatives);
+  }
+}
+
+function deleteAlternative(recipeName, altIdx) {
+  if (savedAlternatives[recipeName]) {
+    savedAlternatives[recipeName].splice(altIdx, 1);
+    if (!savedAlternatives[recipeName].length) delete savedAlternatives[recipeName];
+    saveData('recipe_alternatives', savedAlternatives);
+    renderSavedAlternatives(recipeName);
+  }
+}
+
+function renderSavedAlternatives(recipeName) {
+  const container = document.getElementById('saved-alternatives');
+  const alts = getSavedAlternatives(recipeName);
+  if (!alts.length) { container.innerHTML = ''; return; }
+
+  container.innerHTML = `
+    <div class="detail-section" style="margin-top:16px;">
+      <h3>🔄 Saved Alternatives</h3>
+      ${alts.map((alt, ai) => `
+        <div class="card" style="margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <strong style="font-size:14px;">${esc(alt.name)}</strong>
+            <button class="delete-btn" onclick="event.stopPropagation();deleteAlternative('${esc(recipeName)}',${ai})" title="Remove">&times;</button>
+          </div>
+          <div class="ingredient-list" style="margin-bottom:6px;">
+            ${(alt.ingredients||[]).map(ing =>
+              `<div class="ingredient ${ing.have ? 'have' : 'missing'}">
+                <span>${esc(ing.name)}</span>
+                ${ing.amount ? `<span class="ing-amount">${esc(ing.amount)}</span>` : ''}
+              </div>`
+            ).join('')}
+          </div>
+          <div class="steps-list">${(alt.steps||[]).map(s =>
+            `<div class="step-item">${esc(s).replace(/\\n/g, '<br>').replace(/\n/g, '<br>')}</div>`
+          ).join('')}</div>
+          ${(alt.tips && alt.tips.length) ? `<div style="margin-top:6px;">${alt.tips.map(t => `<div class="tips-list" style="margin-top:4px;">${esc(t)}</div>`).join('')}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+// ===================== RECIPE CHAT =====================
 async function sendChatMessage() {
   const input = document.getElementById('chat-input');
   const msg = input.value.trim();
@@ -1335,13 +1405,20 @@ async function sendChatMessage() {
   // Show user message
   msgContainer.innerHTML += `<div class="chat-msg user">${esc(msg)}</div>`;
 
+  // Detect if user is asking about substitution/alternative
+  const isSubstitution = /替代|代替|substitute|replace|swap|instead|换成|没有.*怎么|不用.*可以|用.*代替|can i use|alternative/i.test(msg);
+
   // Build context
-  const recipeContext = `Recipe: ${r.name}\nIngredients: ${(r.ingredients||[]).map(i=>i.name+' '+i.amount).join(', ')}\nSteps: ${(r.steps||[]).join(' | ')}`;
+  const recipeContext = `Recipe: ${r.name}\nIngredients: ${(r.ingredients||[]).map(i=>i.name+' '+(i.amount||'')).join(', ')}\nSteps: ${(r.steps||[]).join(' | ')}`;
 
   chatHistory.push({ role: 'user', content: msg });
 
+  const systemPrompt = isSubstitution
+    ? `You are a cooking assistant. The user wants to modify this recipe:\n${recipeContext}\n\nThe user is asking about substitutions. Generate a COMPLETE alternative version of the recipe with the substitution applied. Return your response in this EXACT format:\n\nFirst write a brief explanation (1-2 sentences), then on a new line write exactly "---ALT_RECIPE---" followed by valid JSON:\n---ALT_RECIPE---\n{"name": "Modified recipe name 变体名", "ingredients": [{"name": "ingredient", "amount": "amount", "have": true}], "steps": ["① step..."], "tips": ["tip..."]}\n\nThe JSON must have ALL ingredients with EXACT amounts and ALL steps rewritten for the substitution. Write in bilingual Chinese+English style.`
+    : `You are a helpful cooking assistant. The user is looking at this recipe:\n${recipeContext}\nAnswer questions in a friendly bilingual (Chinese+English) style. Keep answers concise and practical.`;
+
   const messages = [
-    { role: 'system', content: `You are a helpful cooking assistant. The user is looking at this recipe:\n${recipeContext}\nAnswer questions about this recipe in a friendly bilingual (Chinese+English) style. Keep answers concise and practical.` },
+    { role: 'system', content: systemPrompt },
     ...chatHistory
   ];
 
@@ -1351,10 +1428,29 @@ async function sendChatMessage() {
   msgContainer.scrollTop = msgContainer.scrollHeight;
 
   try {
-    const response = await callAI(messages, 1024);
+    const response = await callAI(messages, 2048);
     chatHistory.push({ role: 'assistant', content: response });
 
-    document.getElementById(loadingId).innerHTML = response.replace(/\n/g, '<br>');
+    // Check if response contains an alternative recipe
+    if (response.includes('---ALT_RECIPE---')) {
+      const parts = response.split('---ALT_RECIPE---');
+      const explanation = parts[0].trim();
+      const jsonStr = parts[1].replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+      try {
+        const altRecipe = JSON.parse(jsonStr);
+        saveAlternative(r.name, altRecipe);
+        renderSavedAlternatives(r.name);
+
+        document.getElementById(loadingId).innerHTML =
+          explanation.replace(/\n/g, '<br>') +
+          '<br><br><span style="color:var(--accent);font-size:12px;">✓ Alternative saved! Scroll down to see it.</span>';
+      } catch {
+        document.getElementById(loadingId).innerHTML = response.replace(/---ALT_RECIPE---/g, '').replace(/\n/g, '<br>');
+      }
+    } else {
+      document.getElementById(loadingId).innerHTML = response.replace(/\n/g, '<br>');
+    }
   } catch (err) {
     document.getElementById(loadingId).innerHTML = 'Error: ' + esc(err.message);
   }
