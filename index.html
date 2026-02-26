@@ -266,22 +266,20 @@ label {
   font-size: 14px;
 }
 /* Recipe Tab */
+/* Recipe preview cards */
 .recipe-card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 12px;
-}
-.recipe-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  padding: 14px;
   margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
-.recipe-name { font-size: 16px; font-weight: 700; }
-.recipe-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
-.recipe-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.recipe-card:hover { background: var(--card-hover); border-color: var(--accent); }
+.recipe-header { margin-bottom: 6px; }
+.recipe-name { font-size: 15px; font-weight: 700; }
+.recipe-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
 .badge {
   font-size: 11px;
   padding: 3px 8px;
@@ -291,15 +289,84 @@ label {
 .badge-cuisine { background: #3a2d6e; color: #b8a8f0; }
 .badge-difficulty { background: #2d4e3a; color: #a8f0b8; }
 .badge-time { background: #4e3a2d; color: #f0c8a8; }
+.badge-match { background: var(--accent-dim); color: var(--accent); }
+.recipe-preview-ing {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.recipe-tap-hint {
+  font-size: 11px;
+  color: var(--accent);
+  margin-top: 6px;
+  opacity: 0.7;
+}
+/* Recipe detail view */
+.recipe-detail {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 150;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+.recipe-detail.active { display: flex; }
+.recipe-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  flex-shrink: 0;
+}
+.recipe-detail-header .back-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+.recipe-detail-header h2 {
+  font-size: 16px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recipe-detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  padding-bottom: 80px;
+}
+.detail-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.detail-section {
+  margin-bottom: 16px;
+}
+.detail-section h3 {
+  font-size: 14px;
+  color: var(--accent);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .ingredient-list { margin-bottom: 10px; }
-.ingredient-list h4 { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
 .ingredient {
   font-size: 13px;
-  padding: 4px 0;
+  padding: 6px 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #1a1d2e;
+  border-bottom: 1px solid var(--border);
 }
 .ingredient:last-child { border-bottom: none; }
 .ingredient.have { color: var(--success); }
@@ -315,18 +382,83 @@ label {
   white-space: nowrap;
   margin-left: 8px;
 }
-.recipe-steps { margin-top: 12px; }
-.recipe-steps h4 { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
 .steps-list { display: flex; flex-direction: column; gap: 8px; }
 .step-item {
   font-size: 13px;
-  line-height: 1.5;
-  padding: 8px 10px;
-  background: #0f1117;
+  line-height: 1.6;
+  padding: 10px 12px;
+  background: var(--card);
   border-radius: 8px;
   border-left: 3px solid var(--accent);
 }
-.recipe-actions { display: flex; gap: 8px; margin-top: 12px; }
+.tips-list {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: #2d3a2d;
+  border-radius: 8px;
+  border-left: 3px solid var(--success);
+}
+.warning-list {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: #3a2d2d;
+  border-radius: 8px;
+  border-left: 3px solid var(--danger);
+}
+.recipe-detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+/* Recipe chat */
+.recipe-chat {
+  border-top: 1px solid var(--border);
+  padding: 10px 16px;
+  background: var(--card);
+  flex-shrink: 0;
+}
+.chat-messages {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+  display: none;
+}
+.chat-messages.has-messages { display: block; }
+.chat-msg {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  max-width: 90%;
+}
+.chat-msg.user {
+  background: var(--accent-dim);
+  color: var(--accent);
+  margin-left: auto;
+  text-align: right;
+}
+.chat-msg.ai {
+  background: #0f1117;
+  color: var(--text);
+}
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+.chat-input-row input {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.chat-input-row button {
+  flex-shrink: 0;
+  padding: 8px 14px;
+}
 /* Taste Profile */
 .pref-section { margin-bottom: 16px; }
 .pref-tags { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -659,6 +791,22 @@ label {
   </div>
 </div>
 
+<!-- Recipe Detail View -->
+<div class="recipe-detail" id="recipe-detail">
+  <div class="recipe-detail-header">
+    <button class="back-btn" onclick="closeRecipeDetail()">&larr;</button>
+    <h2 id="detail-title"></h2>
+  </div>
+  <div class="recipe-detail-body" id="detail-body"></div>
+  <div class="recipe-chat">
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Ask about this recipe..." onkeydown="if(event.key==='Enter')sendChatMessage()">
+      <button class="btn btn-primary btn-sm" onclick="sendChatMessage()">Ask</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -976,7 +1124,25 @@ function addManualItem() {
   showToast(name + ' added');
 }
 
+// ===================== RECIPE PROMPT =====================
+const RECIPE_PROMPT_SUFFIX = `Return ONLY valid JSON array, no other text. Format:
+[{"name": "菜名 English Name", "cuisine": "Chinese/Japanese/Italian/etc", "difficulty": "easy|medium|hard", "time": "20 min",
+  "ingredients": [{"name": "鸡蛋 Egg", "amount": "2-3个", "have": true}],
+  "steps": ["① 步骤标题\\n详细说明 detailed instruction\\n👉 关键点 key point", "② ..."],
+  "tips": ["小技巧1 tip1", "小技巧2 tip2"],
+  "warnings": ["注意点1 warning1"]}]
+RULES:
+- Every ingredient MUST have "amount" with SPECIFIC measurements (1 tbsp, 200g, 2个, 少许). Be precise for seasonings.
+- Steps: number with ① ② ③, include sub-steps with \\n line breaks, use 👉 for key points and ⏱️ for timing.
+- Include "tips" array with 1-3 cooking tips (让它更好吃的技巧).
+- Include "warnings" array with things to avoid (不翻车要点).
+- Write in mixed Chinese+English style for bilingual users.`;
+
 // ===================== RECIPES =====================
+let currentRecipes = [];
+let currentRecipeIdx = -1;
+let chatHistory = [];
+
 async function suggestRecipes() {
   if (!pantry.length) {
     showToast('Add some items to your pantry first!');
@@ -989,28 +1155,29 @@ async function suggestRecipes() {
   document.getElementById('recipe-list').innerHTML = '';
 
   const ingredientList = pantry.map(i => i.name).join(', ');
-  const liked = preferences.likedIngredients.join(', ') || 'none specified';
-  const disliked = preferences.dislikedIngredients.join(', ') || 'none specified';
-  const cuisines = preferences.likedCuisines.join(', ') || 'none specified';
+  const liked = preferences.likedIngredients.join(', ') || 'none';
+  const disliked = preferences.dislikedIngredients.join(', ') || 'none';
+  const cuisines = preferences.likedCuisines.join(', ') || 'any';
 
   try {
     const response = await callAI([{
       role: 'user',
-      content: `I have these ingredients at home: ${ingredientList}.
-
-My food preferences:
-- Ingredients I like: ${liked}
-- Ingredients I dislike: ${disliked}
-- Recipe styles I enjoy: ${cuisines}
-
-Suggest 3-5 recipes I can make. Favor ingredients I like, avoid ingredients I dislike, and match my preferred recipe styles where possible. For each recipe return ONLY valid JSON, no other text:
-[{"name": "Recipe Name (中文名)", "cuisine": "...", "difficulty": "easy|medium|hard", "time": "30 min", "ingredients": [{"name": "鸡蛋 Egg", "amount": "2-3个", "have": true}], "steps": ["① 步骤名\\nDetailed instruction here", "② 步骤名\\nDetailed instruction here"]}]
-IMPORTANT: Every ingredient MUST include an "amount" field with specific measurements (e.g. "1 tbsp", "200g", "2个", "少许", "适量"). For seasonings be very specific (e.g. "醋 1 tbsp", "糖 1 tbsp", "生抽 1 tbsp"). Steps should be numbered with ① ② ③ and include sub-steps with line breaks. Prefer recipes where I have most/all ingredients. Mark ingredients I have as have:true and ones I'd need to buy as have:false.`
+      content: `I have these ingredients: ${ingredientList}.
+Preferences: like ${liked}, dislike ${disliked}, enjoy ${cuisines} cuisine.
+Suggest 3-5 recipes using my ingredients. Prefer recipes where I have most ingredients. Mark have:true/false.
+${RECIPE_PROMPT_SUFFIX}`
     }]);
 
     const jsonStr = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const recipes = JSON.parse(jsonStr);
-    renderRecipes(recipes);
+    // Sort by number of ingredients user has (most first)
+    recipes.sort((a, b) => {
+      const aHave = (a.ingredients || []).filter(i => i.have).length;
+      const bHave = (b.ingredients || []).filter(i => i.have).length;
+      return bHave - aHave;
+    });
+    currentRecipes = recipes;
+    renderRecipeList(recipes);
   } catch (err) {
     showToast('Error: ' + err.message);
     console.error(err);
@@ -1032,21 +1199,20 @@ async function searchRecipe() {
   document.getElementById('recipe-loading').classList.add('active');
   document.getElementById('recipe-list').innerHTML = '';
 
-  const pantryList = pantry.length ? pantry.map(i => i.name).join(', ') : 'not specified';
+  const pantryList = pantry.length ? `I have: ${pantry.map(i => i.name).join(', ')}. Mark have:true/false.` : '';
 
   try {
     const response = await callAI([{
       role: 'user',
       content: `Give me 1-3 recipes for: "${query}".
-${pantry.length ? `I have these ingredients at home: ${pantryList}.` : ''}
-Return ONLY valid JSON, no other text:
-[{"name": "Recipe Name (中文名)", "cuisine": "...", "difficulty": "easy|medium|hard", "time": "30 min", "ingredients": [{"name": "鸡蛋 Egg", "amount": "2-3个", "have": ${pantry.length ? 'true/false based on my pantry' : 'false'}}], "steps": ["① 步骤名\\nDetailed instruction here", "② 步骤名\\nDetailed instruction here"]}]
-IMPORTANT: Every ingredient MUST include an "amount" field with specific measurements (e.g. "1 tbsp", "200g", "2个", "少许", "适量"). For seasonings be very specific (e.g. "醋 1 tbsp", "糖 1 tbsp", "生抽 1 tbsp"). Steps should be numbered with ① ② ③ and include sub-steps with line breaks.${pantry.length ? ' Mark ingredients I have as have:true.' : ''}`
+${pantryList}
+${RECIPE_PROMPT_SUFFIX}`
     }]);
 
     const jsonStr = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const recipes = JSON.parse(jsonStr);
-    renderRecipes(recipes);
+    currentRecipes = recipes;
+    renderRecipeList(recipes);
   } catch (err) {
     showToast('Error: ' + err.message);
     console.error(err);
@@ -1056,27 +1222,55 @@ IMPORTANT: Every ingredient MUST include an "amount" field with specific measure
   }
 }
 
-function renderRecipes(recipes) {
+// Compact recipe cards list
+function renderRecipeList(recipes) {
   const container = document.getElementById('recipe-list');
   if (!recipes.length) {
     container.innerHTML = '<div class="empty-state"><p>No recipes found</p></div>';
     return;
   }
 
-  container.innerHTML = recipes.map((r, i) => `
-    <div class="recipe-card" id="recipe-${i}">
+  container.innerHTML = recipes.map((r, i) => {
+    const haveCount = (r.ingredients || []).filter(ing => ing.have).length;
+    const total = (r.ingredients || []).length;
+    const ingPreview = (r.ingredients || []).map(ing => ing.name).join(', ');
+    return `
+    <div class="recipe-card" onclick="openRecipeDetail(${i})">
       <div class="recipe-header">
-        <div>
-          <div class="recipe-name">${esc(r.name)}</div>
-        </div>
+        <div class="recipe-name">${esc(r.name)}</div>
       </div>
       <div class="recipe-badges">
         <span class="badge badge-cuisine">${esc(r.cuisine)}</span>
         <span class="badge badge-difficulty">${esc(r.difficulty)}</span>
         <span class="badge badge-time">${esc(r.time)}</span>
+        ${total > 0 ? `<span class="badge badge-match">${haveCount}/${total} ingredients</span>` : ''}
       </div>
+      <div class="recipe-preview-ing">${esc(ingPreview)}</div>
+      <div class="recipe-tap-hint">Tap to view full recipe &rarr;</div>
+    </div>`;
+  }).join('');
+}
+
+// Full recipe detail view
+function openRecipeDetail(idx) {
+  const r = currentRecipes[idx];
+  if (!r) return;
+  currentRecipeIdx = idx;
+  chatHistory = [];
+
+  document.getElementById('detail-title').textContent = r.name;
+  const body = document.getElementById('detail-body');
+
+  body.innerHTML = `
+    <div class="detail-badges">
+      <span class="badge badge-cuisine">${esc(r.cuisine)}</span>
+      <span class="badge badge-difficulty">${esc(r.difficulty)}</span>
+      <span class="badge badge-time">${esc(r.time)}</span>
+    </div>
+
+    <div class="detail-section">
+      <h3>🧾 Materials</h3>
       <div class="ingredient-list">
-        <h4>Materials</h4>
         ${(r.ingredients || []).map(ing =>
           `<div class="ingredient ${ing.have ? 'have' : 'missing'}">
             <span>${esc(ing.name)}</span>
@@ -1084,31 +1278,93 @@ function renderRecipes(recipes) {
           </div>`
         ).join('')}
       </div>
-      <div class="recipe-steps">
-        <h4>Steps</h4>
-        <div class="steps-list">${(r.steps || []).map(s =>
-          `<div class="step-item">${esc(s).replace(/\\n/g, '<br>').replace(/\n/g, '<br>')}</div>`
-        ).join('')}</div>
-      </div>
-      <div class="recipe-actions">
-        <button class="icon-btn like" onclick="likeRecipe(${i}, '${esc(r.name)}', '${esc(r.cuisine)}')" title="Like this recipe">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-6 0v4H5a2 2 0 00-2 2v7a2 2 0 002 2h11.28a2 2 0 001.94-1.51L20 11a2 2 0 00-2-2h-4z"/></svg>
-        </button>
-        <button class="icon-btn dislike" onclick="dislikeRecipe(${i}, '${esc(r.name)}', '${esc(r.cuisine)}')" title="Dislike this recipe">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15V19a3 3 0 006 0v-4h3a2 2 0 002-2V6a2 2 0 00-2-2H7.72a2 2 0 00-1.94 1.51L4 13a2 2 0 002 2h4z"/></svg>
-        </button>
-      </div>
     </div>
-  `).join('');
+
+    <div class="detail-section">
+      <h3>👨‍🍳 Steps</h3>
+      <div class="steps-list">${(r.steps || []).map(s =>
+        `<div class="step-item">${esc(s).replace(/\\n/g, '<br>').replace(/\n/g, '<br>')}</div>`
+      ).join('')}</div>
+    </div>
+
+    ${(r.tips && r.tips.length) ? `
+    <div class="detail-section">
+      <h3>🧠 Tips</h3>
+      ${r.tips.map(t => `<div class="tips-list">${esc(t)}</div>`).join('')}
+    </div>` : ''}
+
+    ${(r.warnings && r.warnings.length) ? `
+    <div class="detail-section">
+      <h3>⚠️ Watch Out</h3>
+      ${r.warnings.map(w => `<div class="warning-list">${esc(w)}</div>`).join('')}
+    </div>` : ''}
+
+    <div class="recipe-detail-actions">
+      <button class="icon-btn like" onclick="likeRecipe(${idx}, '${esc(r.name)}', '${esc(r.cuisine)}')" title="Like">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-6 0v4H5a2 2 0 00-2 2v7a2 2 0 002 2h11.28a2 2 0 001.94-1.51L20 11a2 2 0 00-2-2h-4z"/></svg>
+      </button>
+      <button class="icon-btn dislike" onclick="dislikeRecipe(${idx}, '${esc(r.name)}', '${esc(r.cuisine)}')" title="Dislike">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15V19a3 3 0 006 0v-4h3a2 2 0 002-2V6a2 2 0 00-2-2H7.72a2 2 0 00-1.94 1.51L4 13a2 2 0 002 2h4z"/></svg>
+      </button>
+    </div>
+  `;
+
+  // Reset chat
+  document.getElementById('chat-messages').innerHTML = '';
+  document.getElementById('chat-messages').classList.remove('has-messages');
+  document.getElementById('chat-input').value = '';
+
+  document.getElementById('recipe-detail').classList.add('active');
+}
+
+function closeRecipeDetail() {
+  document.getElementById('recipe-detail').classList.remove('active');
+}
+
+// Chat about the recipe
+async function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  const r = currentRecipes[currentRecipeIdx];
+  const msgContainer = document.getElementById('chat-messages');
+  msgContainer.classList.add('has-messages');
+
+  // Show user message
+  msgContainer.innerHTML += `<div class="chat-msg user">${esc(msg)}</div>`;
+
+  // Build context
+  const recipeContext = `Recipe: ${r.name}\nIngredients: ${(r.ingredients||[]).map(i=>i.name+' '+i.amount).join(', ')}\nSteps: ${(r.steps||[]).join(' | ')}`;
+
+  chatHistory.push({ role: 'user', content: msg });
+
+  const messages = [
+    { role: 'system', content: `You are a helpful cooking assistant. The user is looking at this recipe:\n${recipeContext}\nAnswer questions about this recipe in a friendly bilingual (Chinese+English) style. Keep answers concise and practical.` },
+    ...chatHistory
+  ];
+
+  // Show loading
+  const loadingId = 'chat-loading-' + Date.now();
+  msgContainer.innerHTML += `<div class="chat-msg ai" id="${loadingId}"><div class="spinner" style="width:14px;height:14px;border-width:2px;"></div></div>`;
+  msgContainer.scrollTop = msgContainer.scrollHeight;
+
+  try {
+    const response = await callAI(messages, 1024);
+    chatHistory.push({ role: 'assistant', content: response });
+
+    document.getElementById(loadingId).innerHTML = response.replace(/\n/g, '<br>');
+  } catch (err) {
+    document.getElementById(loadingId).innerHTML = 'Error: ' + esc(err.message);
+  }
+  msgContainer.scrollTop = msgContainer.scrollHeight;
 }
 
 function likeRecipe(idx, name, cuisine) {
   recipesHistory.push({ name, cuisine, liked: true, date: new Date().toISOString() });
   addToPreferences('likedCuisines', cuisine);
   persist();
-
-  const btn = document.querySelector(`#recipe-${idx} .icon-btn.like`);
-  btn.classList.add('active');
   showToast('Liked ' + name);
 }
 
@@ -1116,9 +1372,6 @@ function dislikeRecipe(idx, name, cuisine) {
   recipesHistory.push({ name, cuisine, liked: false, date: new Date().toISOString() });
   addToPreferences('dislikedCuisines', cuisine);
   persist();
-
-  const btn = document.querySelector(`#recipe-${idx} .icon-btn.dislike`);
-  btn.classList.add('active');
   showToast('Disliked ' + name);
 }
 
