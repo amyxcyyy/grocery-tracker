@@ -1623,8 +1623,12 @@ function toggleUrlInput() {
 
 async function handleRedNoteUrl() {
   const urlInput = document.getElementById('rednote-url');
-  const url = urlInput.value.trim();
-  if (!url) { showToast('Please paste a URL'); return; }
+  const rawInput = urlInput.value.trim();
+  if (!rawInput) { showToast('Please paste a URL'); return; }
+
+  // Extract URL from pasted share text (e.g. "标题... http://xhslink.com/xxx 复制后打开...")
+  const urlMatch = rawInput.match(/https?:\/\/[^\s]+/i);
+  const url = urlMatch ? urlMatch[0] : rawInput;
 
   // Validate it looks like a RedNote link
   if (!url.match(/xhslink\.com|xiaohongshu\.com|xhs/i)) {
