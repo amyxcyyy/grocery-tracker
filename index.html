@@ -440,7 +440,7 @@ label {
   <img id="receipt-preview" alt="Receipt preview">
   <div id="scan-loading" class="loading-overlay">
     <div class="spinner"></div>
-    <span>Analyzing receipt with Claude...</span>
+    <span>Analyzing receipt with GPT-4o...</span>
   </div>
   <div id="extracted-items"></div>
   <div id="scan-actions" style="display:none; margin-top:10px;">
@@ -463,7 +463,7 @@ label {
   <button class="btn btn-primary btn-full" onclick="suggestRecipes()" id="suggest-btn" style="margin-bottom:14px;">Suggest Recipes</button>
   <div id="recipe-loading" class="loading-overlay">
     <div class="spinner"></div>
-    <span>Claude is thinking up recipes...</span>
+    <span>Generating recipe suggestions...</span>
   </div>
   <div id="recipe-list"></div>
 </div>
@@ -494,21 +494,12 @@ label {
 <!-- Tab 5: Settings -->
 <div id="tab-settings" class="tab-content">
   <div class="setting-item">
-    <h3>Claude API Key</h3>
-    <p>Your API key is stored locally and never sent to any server except Anthropic's API.</p>
+    <h3>OpenAI API Key</h3>
+    <p>Your key is stored locally and only sent to OpenAI's API. Get one at <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--accent);">platform.openai.com</a>.</p>
     <div class="form-group">
-      <input type="password" id="api-key-input" placeholder="sk-ant-..." value="">
+      <input type="password" id="api-key-input" placeholder="sk-proj-..." value="">
     </div>
     <button class="btn btn-primary btn-sm" onclick="saveApiKey()">Save Key</button>
-  </div>
-
-  <div class="setting-item">
-    <h3>API Proxy URL (Optional)</h3>
-    <p>If direct API calls are blocked by CORS, enter a proxy URL (e.g., a Cloudflare Worker).</p>
-    <div class="form-group">
-      <input type="text" id="proxy-url-input" placeholder="https://your-proxy.workers.dev">
-    </div>
-    <button class="btn btn-primary btn-sm" onclick="saveProxyUrl()">Save Proxy URL</button>
   </div>
 
   <div class="setting-item">
@@ -700,38 +691,28 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   });
 });
 
-// ===================== API =====================
+// ===================== API (OpenAI) =====================
 function getApiKey() { return localStorage.getItem('apiKey') || ''; }
-function getProxyUrl() { return localStorage.getItem('proxyUrl') || ''; }
 
-async function callClaude(messages, maxTokens = 4096) {
+async function callAI(messages, maxTokens = 4096) {
   const apiKey = getApiKey();
   if (!apiKey) {
-    showToast('Please set your Claude API key in Settings');
+    showToast('Please set your OpenAI API key in Settings');
     switchTab('settings', document.querySelectorAll('.tab-btn')[4]);
     throw new Error('No API key');
   }
 
-  const proxyUrl = getProxyUrl();
-  const url = proxyUrl || 'https://api.anthropic.com/v1/messages';
-
-  const body = {
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: maxTokens,
-    messages: messages
-  };
-
-  const headers = {
-    'Content-Type': 'application/json',
-    'x-api-key': apiKey,
-    'anthropic-version': '2023-06-01',
-    'anthropic-dangerous-direct-browser-access': 'true'
-  };
-
-  const res = await fetch(url, {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers,
-    body: JSON.stringify(body)
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      max_tokens: maxTokens,
+      messages: messages
+    })
   });
 
   if (!res.ok) {
@@ -740,7 +721,7 @@ async function callClaude(messages, maxTokens = 4096) {
   }
 
   const data = await res.json();
-  return data.content[0].text;
+  return data.choices[0].message.content;
 }
 
 // ===================== RECEIPT SCANNING =====================
@@ -748,28 +729,25 @@ async function handleReceiptPhoto(input) {
   const file = input.files[0];
   if (!file) return;
 
-  // Show preview
   const preview = document.getElementById('receipt-preview');
   const reader = new FileReader();
   reader.onload = async function(e) {
     preview.src = e.target.result;
     preview.style.display = 'block';
 
-    // Extract base64 data (remove prefix)
-    const base64 = e.target.result.split(',')[1];
-    const mediaType = file.type || 'image/jpeg';
+    const base64url = e.target.result;
 
     document.getElementById('scan-loading').classList.add('active');
     document.getElementById('extracted-items').innerHTML = '';
     document.getElementById('scan-actions').style.display = 'none';
 
     try {
-      const response = await callClaude([{
+      const response = await callAI([{
         role: 'user',
         content: [
           {
-            type: 'image',
-            source: { type: 'base64', media_type: mediaType, data: base64 }
+            type: 'image_url',
+            image_url: { url: base64url, detail: 'high' }
           },
           {
             type: 'text',
@@ -1002,7 +980,7 @@ async function suggestRecipes() {
   const cuisines = preferences.likedCuisines.join(', ') || 'none specified';
 
   try {
-    const response = await callClaude([{
+    const response = await callAI([{
       role: 'user',
       content: `I have these ingredients at home: ${ingredientList}.
 
@@ -1154,17 +1132,6 @@ function saveApiKey() {
   }
 }
 
-function saveProxyUrl() {
-  const url = document.getElementById('proxy-url-input').value.trim();
-  if (url) {
-    localStorage.setItem('proxyUrl', url);
-    showToast('Proxy URL saved');
-  } else {
-    localStorage.removeItem('proxyUrl');
-    showToast('Proxy URL removed');
-  }
-}
-
 function exportData() {
   const data = {
     pantry,
@@ -1224,12 +1191,9 @@ function esc(str) {
 
 // ===================== INIT =====================
 (function init() {
-  // Load saved API key into input
+  // Load saved API key
   const savedKey = getApiKey();
   if (savedKey) document.getElementById('api-key-input').value = savedKey;
-
-  const savedProxy = getProxyUrl();
-  if (savedProxy) document.getElementById('proxy-url-input').value = savedProxy;
 
   // Initial renders
   renderPantry();
