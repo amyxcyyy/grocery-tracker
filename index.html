@@ -494,12 +494,8 @@ label {
 <!-- Tab 5: Settings -->
 <div id="tab-settings" class="tab-content">
   <div class="setting-item">
-    <h3>OpenAI API Key</h3>
-    <p>Your key is stored locally and only sent to OpenAI's API. Get one at <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--accent);">platform.openai.com</a>.</p>
-    <div class="form-group">
-      <input type="password" id="api-key-input" placeholder="sk-proj-..." value="">
-    </div>
-    <button class="btn btn-primary btn-sm" onclick="saveApiKey()">Save Key</button>
+    <h3>How It Works</h3>
+    <p>This app uses <strong style="color:var(--accent);">GPT-4o-mini</strong> for receipt scanning and recipe suggestions. No API key needed — it's all handled securely through a proxy.</p>
   </div>
 
   <div class="setting-item">
@@ -691,23 +687,13 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   });
 });
 
-// ===================== API (OpenAI) =====================
-function getApiKey() { return localStorage.getItem('apiKey') || ''; }
+// ===================== API (via Cloudflare Worker proxy) =====================
+const API_PROXY = 'https://grocery-tracker-proxy.amyxu0205-1c3.workers.dev';
 
 async function callAI(messages, maxTokens = 4096) {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    showToast('Please set your OpenAI API key in Settings');
-    switchTab('settings', document.querySelectorAll('.tab-btn')[4]);
-    throw new Error('No API key');
-  }
-
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await fetch(API_PROXY, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + apiKey
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       max_tokens: maxTokens,
@@ -1121,17 +1107,6 @@ function addPreference() {
 }
 
 // ===================== SETTINGS =====================
-function saveApiKey() {
-  const key = document.getElementById('api-key-input').value.trim();
-  if (key) {
-    localStorage.setItem('apiKey', key);
-    showToast('API key saved');
-  } else {
-    localStorage.removeItem('apiKey');
-    showToast('API key removed');
-  }
-}
-
 function exportData() {
   const data = {
     pantry,
@@ -1191,10 +1166,6 @@ function esc(str) {
 
 // ===================== INIT =====================
 (function init() {
-  // Load saved API key
-  const savedKey = getApiKey();
-  if (savedKey) document.getElementById('api-key-input').value = savedKey;
-
   // Initial renders
   renderPantry();
   renderTasteProfile();
