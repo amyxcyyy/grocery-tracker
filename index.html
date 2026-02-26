@@ -1013,43 +1013,31 @@ function compressImage(base64url, maxWidth = 800, quality = 0.6) {
   });
 }
 
-async function callAI(messages, maxTokens = 4096, retries = 2) {
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const res = await fetch(API_PROXY, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          max_tokens: maxTokens,
-          messages: messages
-        })
-      });
+async function callAI(messages, maxTokens = 3000) {
+  const res = await fetch(API_PROXY, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      max_tokens: maxTokens,
+      messages: messages
+    })
+  });
 
-      if (res.status === 429) {
-        // Rate limited — wait and retry
-        const wait = Math.pow(2, attempt + 1) * 1000;
-        showToast(`Rate limited, retrying in ${wait/1000}s...`);
-        await new Promise(r => setTimeout(r, wait));
-        continue;
-      }
-
-      if (!res.ok) {
-        const errText = await res.text();
-        // Check for quota exceeded
-        if (errText.includes('insufficient_quota') || errText.includes('exceeded')) {
-          throw new Error('OpenAI API quota exceeded. Please check your billing at platform.openai.com');
-        }
-        throw new Error(`API error ${res.status}: ${errText}`);
-      }
-
-      const data = await res.json();
-      return data.choices[0].message.content;
-    } catch (err) {
-      if (attempt === retries) throw err;
-      if (err.message.includes('quota')) throw err; // Don't retry quota errors
-    }
+  if (res.status === 429) {
+    throw new Error('Rate limited — please wait a moment and try again');
   }
+
+  if (!res.ok) {
+    const errText = await res.text();
+    if (errText.includes('insufficient_quota') || errText.includes('exceeded')) {
+      throw new Error('OpenAI quota exceeded. Top up at platform.openai.com/account/billing');
+    }
+    throw new Error(`API error ${res.status}: ${errText}`);
+  }
+
+  const data = await res.json();
+  return data.choices[0].message.content;
 }
 
 // ===================== RECEIPT SCANNING =====================
