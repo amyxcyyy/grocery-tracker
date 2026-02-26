@@ -773,9 +773,9 @@ async function handleReceiptPhoto(input) {
           },
           {
             type: 'text',
-            text: `Look at this grocery receipt image. Extract all food items, vegetables, fruits, meats, dairy, seasonings, and pantry staples. Return ONLY valid JSON, no other text. Format:
-[{"name": "Item Name", "category": "produce|meat|dairy|seasoning|pantry|frozen|beverage|snack", "quantity": "1"}]
-Ignore non-food items (bags, tax, totals, discounts). Capitalize item names properly.`
+            text: `Look at this grocery receipt image. The receipt may be in English, Mandarin Chinese (简体/繁體), or a mix of both. Extract all food items, vegetables, fruits, meats, dairy, seasonings, and pantry staples. For each item, provide BOTH the original name and an English translation. Return ONLY valid JSON, no other text. Format:
+[{"name": "English Name", "originalName": "原始名称 (if non-English, otherwise same as name)", "category": "produce|meat|dairy|seasoning|pantry|frozen|beverage|snack", "quantity": "1"}]
+Ignore non-food items (bags, tax, totals, discounts). Capitalize English names properly. If the receipt is entirely in English, set originalName the same as name.`
           }
         ]
       }]);
@@ -805,6 +805,7 @@ function renderExtractedItems() {
     <div class="extracted-item" id="ext-item-${i}" data-index="${i}">
       <div class="item-info">
         <div class="item-name">${esc(item.name)}</div>
+        ${item.originalName && item.originalName !== item.name ? `<div class="item-original" style="font-size:12px;color:var(--accent);opacity:0.8;">${esc(item.originalName)}</div>` : ''}
         <div class="item-meta">${esc(item.category)} &middot; qty: ${esc(item.quantity || '1')}</div>
       </div>
       <div class="item-actions">
