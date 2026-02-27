@@ -1620,13 +1620,17 @@ async function handleRedNotePhoto(input) {
     try {
       // Compress screenshot to reduce API cost (biggest cause of quota errors)
       const base64url = await compressImage(e.target.result, 800, 0.6);
-      const pantryList = pantry.length ? `\nI have these in my pantry: ${pantry.map(i => i.name).join(', ')}. Mark have:true for ingredients I have.` : '';
+      const pantryList = pantry.length ? `\nI have these in my pantry: ${pantry.map(i => `${i.name} [${i.category}]`).join(', ')}. Mark have:true for ingredients I have.` : '';
 
       const response = await callAI([{
         role: 'user',
         content: [
           { type: 'image_url', image_url: { url: base64url, detail: 'low' } },
           { type: 'text', text: `This is a screenshot of a recipe from a social media app (小红书/RedNote or similar). Extract the complete recipe from this image. The text may be in Chinese, English, or both.${pantryList}
+
+IMPORTANT:
+- The "name" field must be the DISH NAME (what food is being made), NOT the author's username or account name. Usernames like "@xxx" or poster names shown in the UI are NOT recipe names.
+- If this is a video post screenshot, the actual recipe steps may not be visible. Use the post title/description to identify the dish and infer a complete recipe.
 
 Return ONLY valid JSON, no other text:
 {"name": "菜名 English Name", "cuisine": "Chinese/Japanese/etc", "difficulty": "easy|medium|hard", "time": "20 min",
@@ -1703,11 +1707,16 @@ async function handleRedNoteUrl() {
 
     // Send scraped text to AI to extract recipe
     document.getElementById('rednote-loading-text').textContent = 'Extracting recipe...';
-    const pantryList = pantry.length ? `\nI have these in my pantry: ${pantry.map(i => i.name).join(', ')}. Mark have:true for ingredients I have.` : '';
+    const pantryList = pantry.length ? `\nI have these in my pantry: ${pantry.map(i => `${i.name} [${i.category}]`).join(', ')}. Mark have:true for ingredients I have.` : '';
 
     const response = await callAI([{
       role: 'user',
-      content: `This is text content scraped from a RedNote (小红书) recipe post. Extract the complete recipe from it. The text may be in Chinese, English, or both.${pantryList}
+      content: `This is text content scraped from a RedNote (小红书) post about a recipe. It may be a VIDEO post where the scraped text only contains metadata (title, author, comments) rather than full recipe details. Extract the recipe as best you can.${pantryList}
+
+IMPORTANT:
+- The "name" field must be the DISH NAME (what food is being made), NOT the author's username or account name. Usernames like "@xxx" or poster names are NOT recipe names.
+- For video posts, the post title or description usually hints at the dish. Use that to identify the recipe name and infer reasonable ingredients/steps.
+- If the text is sparse, infer a complete recipe based on the dish name and any clues from comments or description. Fill in realistic ingredients and steps.
 
 Text content:
 ${data.text.substring(0, 3000)}
